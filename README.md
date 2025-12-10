@@ -147,7 +147,6 @@ lxml
 │── auto_ria_parser.py
 │── work_ua_parser.py
 │── svitbudov_parser.py
-│── __init__.py
 │
 ├── README.md
 ├── requirements.txt
