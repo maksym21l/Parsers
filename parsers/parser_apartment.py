@@ -1,14 +1,14 @@
 """
-SvitBudov Apartment Scraper
+SvitBudov Apartment Scraper (Simple Clean Version)
 
-Скрипт збирає дані про квартири на продаж з сайту SvitBudov.com.
-Збирає: ціну, кількість кімнат, площу, поверх, адресу, короткий опис та посилання на оголошення.
-Результат зберігається у файлі apartment.json у форматі JSON.
+Скрипт збирає дані про квартири зі SvitBudov.
+Збирає: ціну, кімнати, площу, поверх, адресу, опис та посилання.
+Зберігає у apartment.json
 """
 
-import random
-import time
 import json
+import time
+import random
 import requests
 from bs4 import BeautifulSoup
 import urllib3
@@ -17,58 +17,76 @@ urllib3.disable_warnings()
 
 all_apartment_list = []
 
-for i in range(1, 5):
-    print(f'Парсимо сторінку: {i} ...')
+# Кількість сторінок, які парсимо
+pages = 4
 
-    url = f'https://svitbudov.com/prodazh-kvartyry/?page={i}'
+for page in range(1, pages + 1):
+    print(f"Парсимо сторінку {page}...")
+
+    url = f"https://svitbudov.com/prodazh-kvartyry/?page={page}"
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-                      '(KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                      "(KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
     }
 
-    req = requests.get(url, headers=headers, verify=False)
-    soup = BeautifulSoup(req.text, 'lxml')
+    response = requests.get(url, headers=headers, verify=False)
+    soup = BeautifulSoup(response.text, "lxml")
 
-    apartments = soup.find_all('div', class_='ticket')
+    apartments = soup.find_all("div", class_="ticket")
 
     for apartment in apartments:
-        price = apartment.find('span', class_='price').text
-        count_room = apartment.find('span', class_='price').find_next('span').text
-        area = apartment.find('span', class_='price').find_next('span').find_next('span').text
-        floor = apartment.find('span', class_='price').find_next('span').find_next('span').find_next('span').text
+        # Основні параметри
+        price_tag = apartment.find("span", class_="price")
+        if price_tag:
+            price = price_tag.text.strip()
+        else:
+            price = "Not found"
 
-        address_tag = apartment.find('a', class_='ticket__address')
+        # Наступні значення йдуть по черзі
+        room_tag = price_tag.find_next("span") if price_tag else None
+        area_tag = room_tag.find_next("span") if room_tag else None
+        floor_tag = area_tag.find_next("span") if area_tag else None
+
+        count_room = room_tag.text.strip() if room_tag else "Not found"
+        area = area_tag.text.strip() if area_tag else "Not found"
+        floor = floor_tag.text.strip() if floor_tag else "Not found"
+
+        # Адреса
+        address_tag = apartment.find("a", class_="ticket__address")
+        if not address_tag:
+            address_tag = apartment.find("a", class_="ticket__title")
+
         if address_tag:
             address = address_tag.text.strip()
-            link = 'https://svitbudov.com' + address_tag.get('href')
+            link = "https://svitbudov.com" + address_tag.get("href")
         else:
-            title_tag = apartment.find('a', class_='ticket__title')
-            if title_tag:
-                address = title_tag.text.strip()
-                link = 'https://svitbudov.com' + title_tag.get('href')
-            else:
-                address = 'Not found'
-                link = 'Not found'
+            address = "Not found"
+            link = "Not found"
 
-        description_tag = apartment.find('label', class_='ticket__description')
+        # Опис
+        description_tag = apartment.find("label", class_="ticket__description")
         if description_tag:
-            description = ' '.join(description_tag.get_text().split())[:150] + '...'
+            description = " ".join(description_tag.get_text().split())
+            description = description[:150] + "..."
         else:
-            description = 'Not found'
+            description = "Not found"
 
+        # Збираємо у список
         all_apartment_list.append({
-            'price': price,
-            'count_room': count_room,
-            'area': area,
-            'floor': floor,
-            'address': address,
-            'description': description,
-            'link': link
+            "price": price,
+            "count_room": count_room,
+            "area": area,
+            "floor": floor,
+            "address": address,
+            "description": description,
+            "link": link
         })
 
+    # Пауза, щоб не спамити сервер
     time.sleep(random.randint(2, 4))
 
-with open('apartment.json', 'w', encoding='utf-8') as file:
+# Збереження
+with open("apartment.json", "w", encoding="utf-8") as file:
     json.dump(all_apartment_list, file, indent=4, ensure_ascii=False)
 
-print('Парсинг завершено, дані збережено у файлі apartment.json')
+print("Готово! Дані збережені в apartment.json")
