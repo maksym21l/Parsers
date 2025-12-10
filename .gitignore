@@ -13,3 +13,12 @@ __pycache__/
 # Системні файли
 .DS_Store
 Thumbs.db
+
+
+# virtualenv
+venv/
+.venv/
+
+# IDE
+.idea/
+.vscode/
